@@ -36,7 +36,9 @@ def hosts():
             icinga_objects.name1,
             icinga_hoststatus.current_state,
             icinga_hoststatus.scheduled_downtime_depth,
-            icinga_hoststatus.state_type
+            icinga_hoststatus.state_type,
+            icinga_hoststatus.output,
+            icinga_hoststatus.long_output
         from icinga_objects
         left join icinga_hoststatus on icinga_objects.object_id = icinga_hoststatus.host_object_id
         where
@@ -47,7 +49,7 @@ def hosts():
     )
 
     results = []
-    for host_name, state, downtime_depth, state_type in cur.fetchall():
+    for host_name, state, downtime_depth, state_type, output, long_output in cur.fetchall():
         results.append({
             'type': 'Host',
             'attrs': {
@@ -55,6 +57,9 @@ def hosts():
                 'downtime_depth': downtime_depth,
                 'state': state,
                 'state_type': state_type,
+                'last_check_result': {
+                    'output': output + '\n' + long_output.replace('\\n', '\n'),
+                },
             },
         })
 
@@ -79,7 +84,9 @@ def services():
             icinga_objects.name2,
             icinga_servicestatus.current_state,
             icinga_servicestatus.scheduled_downtime_depth,
-            icinga_servicestatus.state_type
+            icinga_servicestatus.state_type,
+            icinga_servicestatus.output,
+            icinga_servicestatus.long_output
         from icinga_objects
         left join icinga_servicestatus on icinga_objects.object_id = icinga_servicestatus.service_object_id
         where
@@ -90,7 +97,7 @@ def services():
     )
 
     results = []
-    for host_name, service_name, state, downtime_depth, state_type in cur.fetchall():
+    for host_name, service_name, state, downtime_depth, state_type, output, long_output in cur.fetchall():
         results.append({
             'type': 'Service',
             'attrs': {
@@ -99,6 +106,9 @@ def services():
                 'downtime_depth': downtime_depth,
                 'state': state,
                 'state_type': state_type,
+                'last_check_result': {
+                    'output': output + '\n' + long_output.replace('\\n', '\n'),
+                },
             },
         })
 

@@ -5,7 +5,7 @@ from os import environ
 import logging
 import logging.handlers
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import psycopg2
 
 
@@ -19,11 +19,30 @@ def create_app():
     return app
 
 
+def custom_var_processing():
+
+    return custom_var_join, custom_var_filter, varname, varvalue
+
+
 app = create_app()
 
 
 @app.route('/api/v1/objects/hosts')
 def hosts():
+    varname = request.args.get('host_filter_custom_varname')
+    varvalue = request.args.get('host_filter_custom_varvalue')
+    if varname is not None and varvalue is not None:
+        custom_var_join = 'left join icinga_customvariables on icinga_objects.object_id = icinga_customvariables.object_id'
+        custom_var_filter = '''
+        and (
+            icinga_customvariables.varname = %s and
+            icinga_customvariables.varvalue = %s
+        )
+        '''
+    else:
+        custom_var_join = ''
+        custom_var_filter = ''
+
     conn = psycopg2.connect(
         dbname=app.config['DB_NAME'],
         user=app.config['DB_USER'],
@@ -31,7 +50,7 @@ def hosts():
     )
     cur = conn.cursor()
     cur.execute(
-        '''
+        f'''
         select
             icinga_objects.name1,
             icinga_hoststatus.current_state,
@@ -41,11 +60,14 @@ def hosts():
             icinga_hoststatus.long_output
         from icinga_objects
         left join icinga_hoststatus on icinga_objects.object_id = icinga_hoststatus.host_object_id
+        {custom_var_join}
         where
             icinga_objects.objecttype_id = 1 and
             icinga_objects.is_active = 1
+            {custom_var_filter}
         ;
         ''',
+        (varname, varvalue),
     )
 
     results = []
@@ -71,6 +93,23 @@ def hosts():
 
 @app.route('/api/v1/objects/services')
 def services():
+    varname = request.args.get('host_filter_custom_varname')
+    varvalue = request.args.get('host_filter_custom_varvalue')
+    if varname is not None and varvalue is not None:
+        custom_var_join = '''
+        left join icinga_services on icinga_services.service_object_id = icinga_servicestatus.service_object_id
+        left join icinga_customvariables on icinga_services.host_object_id = icinga_customvariables.object_id
+        '''
+        custom_var_filter = '''
+        and (
+            icinga_customvariables.varname = %s and
+            icinga_customvariables.varvalue = %s
+        )
+        '''
+    else:
+        custom_var_join = ''
+        custom_var_filter = ''
+
     conn = psycopg2.connect(
         dbname=app.config['DB_NAME'],
         user=app.config['DB_USER'],
@@ -78,7 +117,7 @@ def services():
     )
     cur = conn.cursor()
     cur.execute(
-        '''
+        f'''
         select
             icinga_objects.name1,
             icinga_objects.name2,
@@ -89,11 +128,14 @@ def services():
             icinga_servicestatus.long_output
         from icinga_objects
         left join icinga_servicestatus on icinga_objects.object_id = icinga_servicestatus.service_object_id
+        {custom_var_join}
         where
             icinga_objects.objecttype_id = 2 and
             icinga_objects.is_active = 1
+            {custom_var_filter}
         ;
         ''',
+        (varname, varvalue),
     )
 
     results = []

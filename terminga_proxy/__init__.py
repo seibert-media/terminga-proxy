@@ -19,11 +19,6 @@ def create_app():
     return app
 
 
-def custom_var_processing():
-
-    return custom_var_join, custom_var_filter, varname, varvalue
-
-
 app = create_app()
 
 

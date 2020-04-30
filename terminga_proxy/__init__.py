@@ -88,12 +88,12 @@ def hosts():
 
 @app.route('/api/v1/objects/services')
 def services():
-    varname = request.args.get('host_filter_custom_varname')
-    varvalue = request.args.get('host_filter_custom_varvalue')
+    varname = request.args.get('service_filter_custom_varname')
+    varvalue = request.args.get('service_filter_custom_varvalue')
     if varname is not None and varvalue is not None:
         custom_var_join = '''
         left join icinga_services on icinga_services.service_object_id = icinga_servicestatus.service_object_id
-        left join icinga_customvariables on icinga_services.host_object_id = icinga_customvariables.object_id
+        left join icinga_customvariables on icinga_services.service_object_id = icinga_customvariables.object_id
         '''
         custom_var_filter = '''
         and (

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 
+from datetime import datetime, timedelta
 from os import environ
 import logging
 import logging.handlers
 
-from flask import Flask, jsonify, request
+from flask import Flask, abort, jsonify, request
 import psycopg2
 
 
@@ -20,6 +21,13 @@ def create_app():
 
 
 app = create_app()
+
+
+def check_freshness(cur):
+    cur.execute('select status_update_time from icinga_programstatus;')
+    lst = list(cur.fetchall())
+    if datetime.utcnow() - lst[0][0] > timedelta(minutes=5):
+        abort(503)
 
 
 @app.route('/api/v1/objects/hosts')
@@ -44,6 +52,9 @@ def hosts():
         password=app.config['DB_PASS'],
     )
     cur = conn.cursor()
+
+    check_freshness(cur)
+
     cur.execute(
         f'''
         select
@@ -111,6 +122,9 @@ def services():
         password=app.config['DB_PASS'],
     )
     cur = conn.cursor()
+
+    check_freshness(cur)
+
     cur.execute(
         f'''
         select

@@ -63,7 +63,8 @@ def hosts():
             icinga_hoststatus.scheduled_downtime_depth,
             icinga_hoststatus.state_type,
             icinga_hoststatus.output,
-            icinga_hoststatus.long_output
+            icinga_hoststatus.long_output,
+            icinga_hoststatus.problem_has_been_acknowledged
         from icinga_objects
         left join icinga_hoststatus on icinga_objects.object_id = icinga_hoststatus.host_object_id
         {custom_var_join}
@@ -77,10 +78,11 @@ def hosts():
     )
 
     results = []
-    for host_name, state, downtime_depth, state_type, output, long_output in cur.fetchall():
+    for host_name, state, downtime_depth, state_type, output, long_output, acked in cur.fetchall():
         results.append({
             'type': 'Host',
             'attrs': {
+                'acknowledgement': acked,
                 'display_name': host_name,
                 'downtime_depth': downtime_depth,
                 'state': state,
@@ -134,7 +136,8 @@ def services():
             icinga_servicestatus.scheduled_downtime_depth,
             icinga_servicestatus.state_type,
             icinga_servicestatus.output,
-            icinga_servicestatus.long_output
+            icinga_servicestatus.long_output,
+            icinga_servicestatus.problem_has_been_acknowledged
         from icinga_objects
         left join icinga_servicestatus on icinga_objects.object_id = icinga_servicestatus.service_object_id
         {custom_var_join}
@@ -148,10 +151,11 @@ def services():
     )
 
     results = []
-    for host_name, service_name, state, downtime_depth, state_type, output, long_output in cur.fetchall():
+    for host_name, service_name, state, downtime_depth, state_type, output, long_output, acked in cur.fetchall():
         results.append({
             'type': 'Service',
             'attrs': {
+                'acknowledgement': acked,
                 'host_name': host_name,
                 'display_name': service_name,
                 'downtime_depth': downtime_depth,

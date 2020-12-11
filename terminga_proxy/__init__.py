@@ -32,19 +32,19 @@ def check_freshness(cur):
 
 @app.route('/api/v1/objects/hosts')
 def hosts():
-    varname = request.args.get('host_filter_custom_varname')
-    varvalue = request.args.get('host_filter_custom_varvalue')
-    if varname is not None and varvalue is not None:
-        custom_var_join = 'left join icinga_customvariables on icinga_objects.object_id = icinga_customvariables.object_id'
-        custom_var_filter = '''
-        and (
-            icinga_customvariables.varname = %s and
-            icinga_customvariables.varvalue = %s
-        )
+    hostgroup = request.args.get('hostgroup')
+    if hostgroup is not None:
+        hostgroup_join = '''
+        inner join icinga_hostgroup_members on objs.object_id = icinga_hostgroup_members.host_object_id
+        inner join icinga_hostgroups on icinga_hostgroup_members.hostgroup_id = icinga_hostgroups.hostgroup_id
+        inner join icinga_objects objs_hostgroup on icinga_hostgroups.hostgroup_object_id = objs_hostgroup.object_id
+        '''
+        hostgroup_filter = '''
+        and objs_hostgroup.name1 = %s
         '''
     else:
-        custom_var_join = ''
-        custom_var_filter = ''
+        hostgroup_join = ''
+        hostgroup_filter = ''
 
     conn = psycopg2.connect(
         dbname=app.config['DB_NAME'],
@@ -58,23 +58,23 @@ def hosts():
     cur.execute(
         f'''
         select
-            icinga_objects.name1,
+            objs.name1,
             icinga_hoststatus.current_state,
             icinga_hoststatus.scheduled_downtime_depth,
             icinga_hoststatus.state_type,
             icinga_hoststatus.output,
             icinga_hoststatus.long_output,
             icinga_hoststatus.problem_has_been_acknowledged
-        from icinga_objects
-        left join icinga_hoststatus on icinga_objects.object_id = icinga_hoststatus.host_object_id
-        {custom_var_join}
+        from icinga_objects objs
+        {hostgroup_join}
+        left join icinga_hoststatus on objs.object_id = icinga_hoststatus.host_object_id
         where
-            icinga_objects.objecttype_id = 1 and
-            icinga_objects.is_active = 1
-            {custom_var_filter}
+            objs.objecttype_id = 1 and
+            objs.is_active = 1
+            {hostgroup_filter}
         ;
         ''',
-        (varname, varvalue),
+        (hostgroup,),
     )
 
     results = []
@@ -101,22 +101,19 @@ def hosts():
 
 @app.route('/api/v1/objects/services')
 def services():
-    varname = request.args.get('service_filter_custom_varname')
-    varvalue = request.args.get('service_filter_custom_varvalue')
-    if varname is not None and varvalue is not None:
-        custom_var_join = '''
-        left join icinga_services on icinga_services.service_object_id = icinga_servicestatus.service_object_id
-        left join icinga_customvariables on icinga_services.service_object_id = icinga_customvariables.object_id
+    servicegroup = request.args.get('servicegroup')
+    if servicegroup is not None:
+        servicegroup_join = '''
+        inner join icinga_servicegroup_members on objs.object_id = icinga_servicegroup_members.service_object_id
+        inner join icinga_servicegroups on icinga_servicegroup_members.servicegroup_id = icinga_servicegroups.servicegroup_id
+        inner join icinga_objects objs_servicegroup on icinga_servicegroups.servicegroup_object_id = objs_servicegroup.object_id
         '''
-        custom_var_filter = '''
-        and (
-            icinga_customvariables.varname = %s and
-            icinga_customvariables.varvalue = %s
-        )
+        servicegroup_filter = '''
+        and objs_servicegroup.name1 = %s
         '''
     else:
-        custom_var_join = ''
-        custom_var_filter = ''
+        servicegroup_join = ''
+        servicegroup_filter = ''
 
     conn = psycopg2.connect(
         dbname=app.config['DB_NAME'],
@@ -130,24 +127,24 @@ def services():
     cur.execute(
         f'''
         select
-            icinga_objects.name1,
-            icinga_objects.name2,
+            objs.name1,
+            objs.name2,
             icinga_servicestatus.current_state,
             icinga_servicestatus.scheduled_downtime_depth,
             icinga_servicestatus.state_type,
             icinga_servicestatus.output,
             icinga_servicestatus.long_output,
             icinga_servicestatus.problem_has_been_acknowledged
-        from icinga_objects
-        left join icinga_servicestatus on icinga_objects.object_id = icinga_servicestatus.service_object_id
-        {custom_var_join}
+        from icinga_objects objs
+        {servicegroup_join}
+        left join icinga_servicestatus on objs.object_id = icinga_servicestatus.service_object_id
         where
-            icinga_objects.objecttype_id = 2 and
-            icinga_objects.is_active = 1
-            {custom_var_filter}
+            objs.objecttype_id = 2 and
+            objs.is_active = 1
+            {servicegroup_filter}
         ;
         ''',
-        (varname, varvalue),
+        (servicegroup,),
     )
 
     results = []

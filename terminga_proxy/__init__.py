@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from os import environ
 import logging
 import logging.handlers
+import json
 
 from flask import Flask, abort, jsonify, request
 import psycopg2
@@ -12,7 +13,7 @@ import psycopg2
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_json(environ['APP_CONFIG'])
+    app.config.from_file(environ['APP_CONFIG'], load=json.load)
     if not app.debug:
         stream_handler = logging.handlers.SysLogHandler(address='/dev/log')
         app.logger.addHandler(stream_handler)
